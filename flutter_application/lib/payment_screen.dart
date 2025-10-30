@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'config.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String appointmentId;
@@ -23,7 +24,6 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   bool _isLoading = false;
-  final String _paymentApiUrl = 'http://localhost:3000'; // Change this to your deployed API URL
 
   Future<void> _initiatePayment() async {
     setState(() => _isLoading = true);
@@ -36,7 +36,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       // Call the payment API
       final response = await http.post(
-        Uri.parse('$_paymentApiUrl/create-appointment-payment'),
+        Uri.parse(ApiConfig.createPaymentEndpoint),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'service': widget.service,
