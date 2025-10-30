@@ -94,6 +94,22 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                             fontWeight: FontWeight.bold,
                             color: _statusColor(status))),
                     const SizedBox(height: 12),
+                    // Show Complete button for Paid appointments
+                    if (status == 'paid')
+                      ElevatedButton.icon(
+                        onPressed: () => _completeAppointment(doc.id),
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text("Mark as Complete"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade400,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    // Show action buttons for Pending appointments
                     if (status != 'cancelled' &&
                         status != 'paid' &&
                         status != 'completed' &&
@@ -190,6 +206,44 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text("Appointment cancelled.")));
+  }
+
+  Future<void> _completeAppointment(String id) async {
+    // Confirm before marking as complete
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Complete Appointment'),
+        content: const Text(
+            'Mark this appointment as complete? This means the service has been provided.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Complete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    await FirebaseFirestore.instance
+        .collection('appointments')
+        .doc(id)
+        .update({
+      'status': 'Completed',
+      'completedAt': FieldValue.serverTimestamp(),
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Appointment marked as complete!")),
+    );
   }
 
   Future<void> _rescheduleAppointment(String id) async {

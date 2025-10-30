@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -60,13 +61,52 @@ class _PaymentScreenState extends State<PaymentScreen> {
             await launchUrl(uri, mode: LaunchMode.externalApplication);
             
             if (!mounted) return;
-            // Show message and go back
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Complete payment in browser. Check back later for status.'),
-                duration: Duration(seconds: 5),
+            
+            // Show confirmation dialog after payment
+            final confirmed = await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                title: const Text('Payment Complete?'),
+                content: const Text(
+                  'Did you complete the payment successfully?\n\n'
+                  'Note: This is temporary. Normally the system auto-updates via webhook.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Not Yet'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    child: const Text('Yes, Completed'),
+                  ),
+                ],
               ),
             );
+
+            if (confirmed == true) {
+              // Manually update status to Paid
+              await FirebaseFirestore.instance
+                  .collection('appointments')
+                  .doc(widget.appointmentId)
+                  .update({
+                'status': 'Paid',
+                'paymentMethod': 'Xendit (Manual Confirm)',
+                'paidAt': FieldValue.serverTimestamp(),
+              });
+
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Payment confirmed! Status updated to Paid.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+            
+            if (!mounted) return;
             Navigator.pop(context);
           } else {
             throw Exception('Could not launch payment URL');

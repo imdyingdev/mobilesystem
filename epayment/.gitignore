@@ -27,3 +27,6 @@ Thumbs.db
 
 # Optional eslint cache
 .eslintcache
+
+# Service account credentials
+serviceAccountKey.json

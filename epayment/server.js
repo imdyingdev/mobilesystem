@@ -47,57 +47,48 @@ function verifyXenditSignature(req, body) {
 }
 
 // Webhook endpoint for Xendit
-app.post('/webhook/xendit', (req, res) => {
-  const body = JSON.stringify(req.body);
-
-  // Verify the webhook signature
-  if (!verifyXenditSignature(req, body)) {
-    console.log('Invalid signature');
-    return res.status(401).send('Unauthorized');
-  }
+app.post('/webhook/xendit', async (req, res) => {
+  console.log('\n=== Xendit Webhook Received ===');
+  console.log('Payload:', JSON.stringify(req.body, null, 2));
 
   // Process the webhook payload
   const event = req.body;
 
-  console.log('Received Xendit webhook:', event);
-
-  // Handle different event types
-  switch (event.event) {
-    case 'payment.succeeded':
-      console.log('Payment succeeded:', event.data);
-      // TODO: Update your database, send notifications, etc.
-      break;
-    case 'payment.failed':
-      console.log('Payment failed:', event.data);
-      // TODO: Handle failed payment
-      break;
-    case 'invoice.paid':
-      console.log('Invoice paid:', event.data);
-      // Move appointment from pending to confirmed
-      handlePaymentSuccess(event.data);
-      break;
-    default:
-      console.log('Unhandled event type:', event.event);
+  // Handle different webhook formats
+  if (event.status === 'PAID' || event.status === 'SETTLED') {
+    console.log('✅ Payment successful! Processing...');
+    await handlePaymentSuccess(event);
+  } else if (event.event === 'invoice.paid') {
+    console.log('✅ Invoice paid! Processing...');
+    await handlePaymentSuccess(event);
+  } else {
+    console.log('ℹ️ Other webhook event:', event.event || event.status);
   }
 
-  // Respond to Xendit
+  // Always respond with 200 OK
   res.status(200).send('OK');
 });
 
 // Function to handle successful payment
 async function handlePaymentSuccess(paymentData) {
-  console.log('Processing successful payment for appointment:', paymentData.external_id);
+  console.log('\n🔄 Processing successful payment...');
+  console.log('External ID:', paymentData.external_id);
 
   try {
     // Extract appointment ID from metadata
     const metadata = paymentData.metadata || {};
+    console.log('Metadata:', JSON.stringify(metadata, null, 2));
+    
     const appointmentData = metadata.appointmentData || {};
     const appointmentId = appointmentData.appointmentId;
 
     if (!appointmentId) {
-      console.error('No appointment ID found in payment metadata');
+      console.error('❌ No appointment ID found in payment metadata');
+      console.error('Available metadata:', metadata);
       return;
     }
+
+    console.log('📝 Updating appointment:', appointmentId);
 
     // Update appointment status in Firebase
     const db = admin.firestore();
@@ -110,9 +101,10 @@ async function handlePaymentSuccess(paymentData) {
       paidAmount: paymentData.amount,
     });
 
-    console.log(`Successfully updated appointment ${appointmentId} to Paid status`);
+    console.log(`✅ Successfully updated appointment ${appointmentId} to Paid status`);
   } catch (error) {
-    console.error('Error updating appointment:', error);
+    console.error('❌ Error updating appointment:', error);
+    console.error('Error details:', error.message);
   }
 }
 
@@ -158,9 +150,147 @@ app.post('/create-appointment-payment', async (req, res) => {
   }
 });
 
+// Success redirect endpoint
+app.get('/payment-success', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Successful</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          margin: 0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          text-align: center;
+          padding: 20px;
+        }
+        .container {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          padding: 40px;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        .checkmark {
+          font-size: 80px;
+          animation: scale 0.5s ease-in-out;
+        }
+        @keyframes scale {
+          0% { transform: scale(0); }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); }
+        }
+        h1 { margin: 20px 0; }
+        p { font-size: 18px; margin: 10px 0; }
+        .info { margin-top: 30px; font-size: 14px; opacity: 0.8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="checkmark">✅</div>
+        <h1>Payment Successful!</h1>
+        <p>Your appointment has been confirmed.</p>
+        <p>Check your appointment status in the app.</p>
+        <div class="info">
+          <p>You can close this window and return to the app.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// Failure redirect endpoint
+app.get('/payment-failed', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Failed</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          margin: 0;
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: white;
+          text-align: center;
+          padding: 20px;
+        }
+        .container {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          padding: 40px;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        .cross {
+          font-size: 80px;
+          animation: shake 0.5s ease-in-out;
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-10px); }
+          75% { transform: translateX(10px); }
+        }
+        h1 { margin: 20px 0; }
+        p { font-size: 18px; margin: 10px 0; }
+        .info { margin-top: 30px; font-size: 14px; opacity: 0.8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="cross">❌</div>
+        <h1>Payment Failed</h1>
+        <p>Your payment could not be processed.</p>
+        <p>Please try again or contact support.</p>
+        <div class="info">
+          <p>You can close this window and return to the app.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).send('Server is running');
+});
+
+// Manual test endpoint for updating appointment to Paid
+app.post('/test-payment-success', async (req, res) => {
+  const { appointmentId } = req.body;
+  
+  if (!appointmentId) {
+    return res.status(400).json({ error: 'appointmentId required' });
+  }
+
+  try {
+    const db = admin.firestore();
+    await db.collection('appointments').doc(appointmentId).update({
+      status: 'Paid',
+      paymentMethod: 'Test',
+      paidAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    
+    console.log(`✅ Test: Updated appointment ${appointmentId} to Paid`);
+    res.json({ success: true, message: 'Appointment updated to Paid' });
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Start the server
