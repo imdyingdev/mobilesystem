@@ -28,8 +28,9 @@ app.use(cors({
   credentials: true
 }));
 
-// Xendit webhook secret (set this in your environment variables)
-const XENDIT_WEBHOOK_SECRET = process.env.XENDIT_WEBHOOK_SECRET;
+// Xendit credentials (set these in your environment variables)
+const XENDIT_SECRET_KEY = process.env.XENDIT_SECRET_KEY; // API Secret Key for making API calls
+const XENDIT_WEBHOOK_TOKEN = process.env.XENDIT_WEBHOOK_TOKEN; // Webhook Verification Token
 
 // Function to verify Xendit webhook signature
 function verifyXenditSignature(req, body) {
@@ -39,7 +40,7 @@ function verifyXenditSignature(req, body) {
   }
 
   const expectedSignature = crypto
-    .createHmac('sha256', XENDIT_WEBHOOK_SECRET)
+    .createHmac('sha256', XENDIT_WEBHOOK_TOKEN)
     .update(body)
     .digest('hex');
 
@@ -116,7 +117,7 @@ app.post('/create-appointment-payment', async (req, res) => {
     // Create invoice with Xendit
     const Xendit = require('xendit-node');
     const xendit = new Xendit({
-      secretKey: process.env.XENDIT_WEBHOOK_SECRET,
+      secretKey: XENDIT_SECRET_KEY,
     });
 
     const { Invoice } = xendit;

@@ -2,7 +2,7 @@ require('dotenv').config();
 const Xendit = require('xendit-node');
 
 const xendit = new Xendit({
-  secretKey: process.env.XENDIT_WEBHOOK_SECRET,
+  secretKey: process.env.XENDIT_SECRET_KEY,
 });
 
 const { Invoice } = xendit;

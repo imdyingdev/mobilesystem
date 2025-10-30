@@ -22,8 +22,9 @@ npm install
 
 1. Sign up at [Xendit Dashboard](https://dashboard.xendit.co/)
 2. Go to **Settings** → **API Keys**
-3. Copy your **Secret Key** (starts with `xnd_...`)
-4. Copy your **Webhook Verification Token**
+3. Copy your **Secret Key** (starts with `xnd_...`) - This is for making API calls
+4. Go to **Settings** → **Webhooks** → **Webhook Settings**
+5. Copy your **Webhook Verification Token** - This is for verifying webhook signatures
 
 ### 3. Setup Firebase Admin SDK
 
@@ -36,10 +37,15 @@ npm install
 
 Create/update `.env` file:
 ```env
-XENDIT_WEBHOOK_SECRET=your_xendit_secret_key_here
+XENDIT_SECRET_KEY=xnd_your_secret_api_key_here
+XENDIT_WEBHOOK_TOKEN=your_webhook_verification_token_here
 PORT=3000
 GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
 ```
+
+**Important:**
+- `XENDIT_SECRET_KEY` = Your Xendit Secret API Key (starts with `xnd_...`)
+- `XENDIT_WEBHOOK_TOKEN` = Your Webhook Verification Token (different from API key)
 
 ### 5. Start the Server
 ```bash
@@ -131,8 +137,9 @@ npm run create-payment
 - Check `GOOGLE_APPLICATION_CREDENTIALS` path in `.env`
 
 **Error: Payment creation failed**
-- Verify Xendit API key in `.env`
+- Verify `XENDIT_SECRET_KEY` is correct in `.env` (should start with `xnd_...`)
 - Check Xendit dashboard for API errors
+- Make sure you're using the Secret API Key, not the Webhook Token
 
 **Webhook not updating Firebase**
 - Check webhook signature is correct
