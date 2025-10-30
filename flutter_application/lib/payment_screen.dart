@@ -35,6 +35,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
 
       // Call the payment API
+      print('🔄 Calling payment API: ${ApiConfig.createPaymentEndpoint}');
+      print('Request data: service=${widget.service}, amount=${widget.price}');
+      
       final response = await http.post(
         Uri.parse(ApiConfig.createPaymentEndpoint),
         headers: {'Content-Type': 'application/json'},
@@ -49,16 +52,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
           }
         }),
       );
+      
+      print('📡 Response status: ${response.statusCode}');
+      print('📡 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final invoiceUrl = data['invoiceUrl'];
         
+        print('✅ Payment API Success!');
+        print('Invoice URL: $invoiceUrl');
+        
         if (invoiceUrl != null) {
           // Open Xendit payment page in browser
           final uri = Uri.parse(invoiceUrl);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          print('Parsed URI: $uri');
+          print('Attempting to launch URL...');
+          
+          // Try launching without checking first (more reliable on some devices)
+          try {
+            final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+            print('Launch result: $launched');
+            
+            if (!launched) {
+              throw Exception('launchUrl returned false');
+            }
             
             if (!mounted) return;
             
@@ -108,8 +126,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             
             if (!mounted) return;
             Navigator.pop(context);
-          } else {
-            throw Exception('Could not launch payment URL');
+          } catch (launchError) {
+            print('❌ Launch error: $launchError');
+            throw Exception('Could not launch payment URL: $launchError');
           }
         } else {
           throw Exception('No invoice URL received');
