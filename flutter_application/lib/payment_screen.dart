@@ -1,0 +1,155 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
+
+class PaymentScreen extends StatefulWidget {
+  final String appointmentId;
+  final String service;
+  final int price;
+
+  const PaymentScreen({
+    super.key,
+    required this.appointmentId,
+    required this.service,
+    required this.price,
+  });
+
+  @override
+  State<PaymentScreen> createState() => _PaymentScreenState();
+}
+
+class _PaymentScreenState extends State<PaymentScreen> {
+  bool _isLoading = false;
+  final String _paymentApiUrl = 'http://localhost:3000'; // Change this to your deployed API URL
+
+  Future<void> _initiatePayment() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not logged in');
+      }
+
+      // Call the payment API
+      final response = await http.post(
+        Uri.parse('$_paymentApiUrl/create-appointment-payment'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'service': widget.service,
+          'amount': widget.price,
+          'userId': user.uid,
+          'appointmentData': {
+            'appointmentId': widget.appointmentId,
+            'service': widget.service,
+            'price': widget.price,
+          }
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final invoiceUrl = data['invoiceUrl'];
+        
+        if (invoiceUrl != null) {
+          // Open Xendit payment page in browser
+          final uri = Uri.parse(invoiceUrl);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            
+            if (!mounted) return;
+            // Show message and go back
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Complete payment in browser. Check back later for status.'),
+                duration: Duration(seconds: 5),
+              ),
+            );
+            Navigator.pop(context);
+          } else {
+            throw Exception('Could not launch payment URL');
+          }
+        } else {
+          throw Exception('No invoice URL received');
+        }
+      } else {
+        throw Exception('Failed to create payment: ${response.body}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment error: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Payment"),
+        backgroundColor: Colors.pink,
+      ),
+      backgroundColor: Colors.pink.shade50,
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.payment,
+              size: 80,
+              color: Colors.pink,
+            ),
+            const SizedBox(height: 30),
+            Text(
+              "Service: ${widget.service}",
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text("Amount to Pay: ₱${widget.price}",
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.pink)),
+            const SizedBox(height: 10),
+            const Text(
+              "Payment via Xendit",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Supports: GCash, QR PH, Card, Bank Transfer",
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton.icon(
+                    onPressed: _initiatePayment,
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text("Proceed to Payment"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pink,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 55),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+            const SizedBox(height: 20),
+            const Text(
+              "You will be redirected to complete payment.\nReturn to the app to check your appointment status.",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

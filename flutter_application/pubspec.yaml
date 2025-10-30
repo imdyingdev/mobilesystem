@@ -1,0 +1,35 @@
+name: flutter_application
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # ✅ Firebase dependencies (latest stable versions)
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.2
+  firebase_app_check: ^0.3.1+3
+  intl: ^0.18.1
+  
+  # Payment integration
+  http: ^1.1.0
+  url_launcher: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.jpg
