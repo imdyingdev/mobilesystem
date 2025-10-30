@@ -150,6 +150,107 @@ app.post('/create-appointment-payment', async (req, res) => {
   }
 });
 
+// GET fallback for create-appointment-payment (for browser visits)
+app.get('/create-appointment-payment', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment API Endpoint</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          margin: 0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 20px;
+        }
+        .container {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          padding: 40px;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+          max-width: 500px;
+          text-align: center;
+        }
+        .icon {
+          font-size: 80px;
+          margin-bottom: 20px;
+        }
+        h1 { 
+          margin: 20px 0; 
+          font-size: 24px;
+        }
+        .info-box {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 10px;
+          padding: 20px;
+          margin: 20px 0;
+          text-align: left;
+        }
+        .info-box h3 {
+          margin-top: 0;
+          color: #ffd700;
+        }
+        code {
+          background: rgba(0, 0, 0, 0.3);
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+        .status {
+          display: inline-block;
+          background: #4caf50;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-weight: bold;
+          margin-top: 10px;
+        }
+        ul {
+          text-align: left;
+          line-height: 1.8;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="icon">🔌</div>
+        <h1>Payment API Endpoint</h1>
+        <div class="status">✅ Server Running</div>
+        
+        <div class="info-box">
+          <h3>ℹ️ API Information</h3>
+          <p><strong>Endpoint:</strong> <code>/create-appointment-payment</code></p>
+          <p><strong>Method:</strong> <code>POST</code> only</p>
+          <p><strong>Purpose:</strong> Create Xendit payment invoices</p>
+        </div>
+
+        <div class="info-box">
+          <h3>📋 Required POST Data</h3>
+          <ul>
+            <li><code>service</code> - Service name</li>
+            <li><code>amount</code> - Amount in PHP</li>
+            <li><code>userId</code> - User ID</li>
+            <li><code>appointmentData</code> - Appointment details</li>
+          </ul>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 14px; opacity: 0.8;">
+          This endpoint cannot be accessed directly via browser.<br>
+          It's designed to be called from the mobile app.
+        </p>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 // Success redirect endpoint
 app.get('/payment-success', (req, res) => {
   res.send(`
