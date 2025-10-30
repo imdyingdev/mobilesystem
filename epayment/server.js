@@ -294,6 +294,9 @@ app.post('/test-payment-success', async (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Webhook server listening on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 Webhook server listening on port ${PORT}`);
+  console.log(`📱 Local access: http://localhost:${PORT}`);
+  console.log(`🌐 Network access: http://192.168.1.6:${PORT}`);
+  console.log(`✅ Health check: http://192.168.1.6:${PORT}/health\n`);
 });
